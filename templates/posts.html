@@ -1,0 +1,67 @@
+{% load health_tags %}
+<html>
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <link href="https://fonts.googleapis.com/css?family=Muli:300,400,600,700,800" rel="stylesheet">
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.0.13/css/all.css" integrity="sha384-DNOHZ68U8hZfKXOrtjWvjxusGo9WQnrNx2sqG0tfsghAvtVlRW3tvkXWZh58N9jp" crossorigin="anonymous">
+    </link>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css" integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO" crossorigin="anonymous">
+  </head>
+  <body>
+    <br><br>
+    <div class="create_page">
+    <div class="row formulation search_result">
+      <div class="container">
+        <div class="row no-gutters formater">
+          <div class="col-md-12 d-flex">
+            <a href="{% url 'access_health_app:create_post' %}" class="show_items">Add Post</a>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="row detail_view">
+      <div class="container">
+        <div class="formula_table">
+          <table class="table" id="example">
+            <tbody>
+              {% for post in posts %}
+              <tr>
+                <td>{{forloop.counter}}</td>
+                <td><a href="#">{{post.post_description}}</a></td>
+                <td>{{post.posted_on}}</td>
+                <td class="created">{% if post.posted_by is not None %}{{post.posted_by}}{% endif %}</td>
+                <td class="actions">
+                  <a class="like_post" id="like_post_{{post.id}}" data-id="{{post.id}}" data-href="{% url 'access_health_app:like_post' post.id %}">{{post.likes_count}}&nbsp;<i class="fas fa-thumbs-up"></i></a>
+                  &nbsp;&nbsp;
+                  <a class="dislike_post" data-href="{% url 'access_health_app:dislike_post' post.id %}" id="dislike_post_{{post.id}}" data-id="{{post.id}}" >{{post.dislikes_count}}&nbsp;<i class="fas fa-thumbs-down"></i></a>
+                  &nbsp;
+                  <a onclick="return confirm('Are you sure you want to delete this post?')"href="{% url 'access_health_app:post_delete' post.id %}"><i class="fas fa-trash"></i></a>
+                    &nbsp;
+                  <a href="{% url 'access_health_app:post_detail' post.id %}"><i class="fa fa-comments" aria-hidden="true"></i></a>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
+    <script type="text/javascript">
+      $(".like_post").on("click", function(e){
+        var data_url = $(this).attr('data-href')
+        $.get(data_url, function(data){
+          alert(data.message)
+          window.location.reload();
+        });
+      });
+      $(".dislike_post").on("click", function(e){
+        var data_url = $(this).attr('data-href')
+        $.get(data_url, function(data){
+          alert(data.message)
+          window.location.reload();
+        });
+      });
+    </script>
+  </body>
+</html>

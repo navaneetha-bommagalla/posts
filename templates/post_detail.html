@@ -1,0 +1,164 @@
+{% load health_tags %}
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <link href="https://fonts.googleapis.com/css?family=Muli:300,400,600,700,800" rel="stylesheet">
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.0.13/css/all.css" integrity="sha384-DNOHZ68U8hZfKXOrtjWvjxusGo9WQnrNx2sqG0tfsghAvtVlRW3tvkXWZh58N9jp" crossorigin="anonymous">
+    </link>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css" integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO" crossorigin="anonymous">
+  </head>
+  <div class="container">
+    <p>{{post.post_description}}</p>
+    <div class="col-md-6 col-lg-5">
+      <h2 class="heading">Comments</h2>
+      <div class="comments-list">
+        {% for comment in comments %}
+        <div class="media">
+          <div class="media-body">
+            <p class="comment_data">{{comment.comment|safe}}</p>
+            <div class="name"><a href="#">{% if comment.commented_by.name %}{{comment.commented_by.name}}{% else %}{{comment.commented_by.email}}{% endif %}</a> <span class="float-right">{{comment.commented_on}}</span></div>
+            <div class="content">
+              <div class="text-right">
+                <span class="reply_button" data-id="{{comment.id}}" data-parent="{{comment.id}}" data-name="{{comment.comment}}"><i class="fas fa-reply"></i></span>&nbsp;
+                <div class="reply_comment_div{{comment.id}}"></div>
+                {% for each in comment|child_comments %}
+                <div style="margin-top: 10px; padding:6px; background: #dedede;">
+                  <div class="media">
+                    <div class="media-body">
+                      <div class="content text-left">
+                        <p>{{each.comment|safe}}</p>
+                        <div class="text-right">
+                          <span class="reply_button" data-name="{{each.comment}}" data-id="{{each.id}}" data-parent="{{each.parent.id}}"><i class="fas fa-reply" ></i></span>&nbsp;
+                        </div>
+                      </div>
+                      <div class="name text-left"><a href="#">{% if each.commented_by.name %}{{each.commented_by.name}} {% else %} {{each.commented_by.email}} {% endif %}</a>
+                        <span class="float-right">{{each.commented_on}}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <br>
+                <div class="reply_comment_div{{each.id}}"></div>
+                {% endfor %}
+              </div>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+        <div class="comment_container add">
+          <form id="comment_form" method="post">
+            {% csrf_token %}
+            <textarea name="comment_1" class="editor1" id="id_comment"></textarea>
+            <br>
+            <div class="text-right">
+              <button type="button" id="post_comment" data-value="create" class="btn primary_button">Post Comment</button>
+              <button type="button" class="btn secondary_btn cancel_button">Cancel</button>
+            </div>
+          </form>
+        </div>
+        <br>
+      </div>
+    </div>
+  </div>
+<script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
+<script type="text/javascript" src="https://cdn.ckeditor.com/4.7.1/standard/ckeditor.js"></script>
+<script type="text/javascript">
+  let ck_count = 1
+  $(document).ready(function () {
+    ckinit(1)
+  });
+  function ckinit(ck_count) {
+    const ck_name = "comment_" + ck_count
+    CKEDITOR.replace(ck_name, {
+      toolbar: [{
+          name: 'basicstyles',
+          items: ['Bold', 'Italic']
+        },
+        {
+          name: 'paragraph',
+          items: ['NumberedList', 'BulletedList', '-', 'Outdent', 'Indent', '-', 'Blockquote', 'CreateDiv', '-', 'JustifyLeft', 'JustifyCenter', 'JustifyRight', 'JustifyBlock', '-', 'BidiLtr', 'BidiRtl']
+        },
+      ],
+      uiColor: '#ffffff',
+      height: 100,
+      // width: 50,
+    });
+  }
+
+  $("#post_comment").click(function (e) {
+    e.preventDefault();
+    $("#id_comment").val(CKEDITOR.instances.id_comment.getData());
+    url = "{% url 'access_health_app:comment_create' post.id %}"
+    var serialized_data = $("#comment_form").serializeArray();
+    serialized_data.push({
+      name: "comment",
+      value: $("#id_comment").val()
+    });
+
+    $.post(url, serialized_data, function (data) {
+      if (data.error) {
+        $('p.form_error').remove();
+        for (var key in data.errors) {
+          $('#id_' + key).after('<p class="form_error">*' + data.errors[key] + '</p>');
+        }
+        return;
+      } else {
+        window.location.reload();
+      }
+    }, 'json');
+  });
+
+  $(".cancel_button").click(function (e) {
+    e.preventDefault()
+    window.location.reload();
+  });
+
+  $(function () {
+    $(document).on("click", ".cancel", function (e) {
+      window.location.reload();
+    })
+  });
+
+  $(".reply_button").click(function (e) {
+    e.preventDefault();
+    ck_count = ck_count + 1
+    cid = $(this).attr('data-id')
+    parent = $(this).attr('data-parent')
+    $("div.ckeditor-load").remove()
+    ck_count = 1
+    $(".reply_comment_div" + cid).append(
+      '<div class="ckeditor-load">' +
+      '<form id="reply_comment_form" method="post">{% csrf_token %}' +
+      '<textarea name="comment_' + ck_count + '" class="editor1" id="id_reply_comment"></textarea>' + '<br>' +
+      '<div class="text-right">' +
+      '<input type="hidden" class="parent_value" name="parent_comment" value="' + parent + '">' +
+      '<button type="button" class="btn primary_button reply_post">Post Comment</button>' +
+      '<button type="button" class="btn secondary_btn cancel">Cancel</button>' +
+      '</form>' +
+      '</div>')
+    ckinit(ck_count);
+  });
+
+  $(function () {
+    $(document).on("click", ".reply_post", function (e) {
+      e.preventDefault();
+      $("#id_reply_comment").val(CKEDITOR.instances.id_reply_comment.getData());
+      url = "{% url 'access_health_app:comment_create' post.id %}"
+      var serialized_data = $("#reply_comment_form").serializeArray();
+      serialized_data.push({
+        name: "comment",
+        value: $("#id_reply_comment").val()
+      });
+      $.post(url, serialized_data, function (data) {
+        if (data.error) {
+          $('p.form_error').remove();
+          for (var key in data.errors) {
+            $('#id_reply_' + key).after('<p class="form_error">*' + data.errors[key] + '</p>');
+          }
+          return;
+        } else {
+          window.location.reload();
+        }
+      }, 'json');
+    });
+  });
+</script>
